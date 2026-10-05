@@ -1,0 +1,177 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Least privilege by default. Jobs opt in to anything more.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_COLOR: "1"
+  UV_FROZEN: "1"
+  HYPOTHESIS_PROFILE: ci
+
+# Third-party actions are pinned to a commit SHA, with the tag as a comment.
+# zizmor checks this, and Dependabot keeps the pins up to date.
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+      - run: uv sync --all-groups
+
+      - name: ruff check
+        run: uv run ruff check --output-format=github .
+      - name: ruff format
+        run: uv run ruff format --check --diff .
+      - name: Custom static analysis rules
+        run: uvx semgrep --config .semgrep.yml --error --disable-version-check mypackage/ tests/
+
+  test:
+    name: Test (py${{ matrix.python-version }} / ${{ matrix.os }} / ${{ matrix.tz || 'default tz' }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        tz: ["UTC"]
+        include:
+          # The runner defaults to UTC, which hides timezone bugs. These offsets are
+          # chosen to expose them: +09:00, a US zone with DST, and a :45 offset.
+          - {os: ubuntu-latest, python-version: "3.13", tz: "Asia/Tokyo"}
+          - {os: ubuntu-latest, python-version: "3.13", tz: "America/Los_Angeles"}
+          - {os: ubuntu-latest, python-version: "3.13", tz: "Asia/Kathmandu"}
+          # TZ does not work on Windows, so that job keeps the default.
+          - {os: macos-latest, python-version: "3.13"}
+          - {os: windows-latest, python-version: "3.13"}
+    env:
+      TZ: ${{ matrix.tz }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python-version }}
+      - run: uv sync --all-groups
+
+      - name: Run tests (random order, coverage gate)
+        run: uv run pytest --cov --cov-report=xml --junitxml=junit.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: junit-${{ matrix.os }}-py${{ matrix.python-version }}-${{ matrix.tz || 'default' }}
+          path: junit.xml
+          if-no-files-found: ignore
+
+  adversarial:
+    name: Adversarial (fuzz + fault injection)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+      - run: uv sync --all-groups
+      - name: Hostile upstream, parser fuzzing, fault injection
+        run: uv run pytest -m adversarial --hypothesis-show-statistics
+
+  types:
+    name: Types & architecture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+      - run: uv sync --all-groups
+      - run: uv run ty check                    # package and tests
+      - run: uv run mypy --strict mypackage/      # until ty is 1.0
+      - run: uv run lint-imports
+
+  audit:
+    name: Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+
+      - name: Lockfile is in sync with pyproject.toml
+        run: uv lock --check
+
+      - name: Known vulnerabilities (runtime deps)
+        run: |
+          uv export --frozen --no-dev --no-emit-project --format requirements-txt > requirements.txt
+          uvx pip-audit --strict --disable-pip --require-hashes --requirement requirements.txt
+
+      - name: Static security lint
+        run: uvx ruff check --select S mypackage/
+
+      - name: Workflow static analysis
+        run: uvx zizmor --min-severity medium .github/workflows/
+
+      - name: SBOM
+        run: |
+          uv sync --no-dev
+          uvx --from cyclonedx-bom cyclonedx-py environment --output-format JSON --output-file sbom.json .venv
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom
+          path: sbom.json
+
+  osv:
+    # osv-scanner is a Go binary and is not on PyPI, so use Google's action.
+    # It scans uv.lock, dev dependencies included.
+    name: Known vulnerabilities (OSV, incl. dev deps)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: google/osv-scanner-action/osv-scanner-action@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0
+        with:
+          scan-args: |-
+            --lockfile=uv.lock
+
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    needs: [lint, test, adversarial, types, audit, osv]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - run: uv build
+      - name: Check metadata
+        run: uvx twine check --strict dist/*
+      - name: Wheel ships type information (py.typed)
+        run: unzip -l dist/*.whl | grep -q 'mypackage/py.typed'
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist
+          path: dist/

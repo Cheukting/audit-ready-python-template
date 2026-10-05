@@ -1,0 +1,68 @@
+# Project-specific rules: invariants that ruff cannot express.
+# Run: uvx semgrep --config .semgrep.yml --error mypackage/ tests/
+# Silence a deliberate exception with `# nosemgrep: <rule-id>` plus a reason.
+rules:
+  - id: no-naive-utc-clock
+    pattern-either:
+      - pattern: datetime.now()
+      - pattern: datetime.utcnow()
+      - pattern: datetime.strptime(...)
+      - pattern: datetime.datetime.now()
+      - pattern: datetime.datetime.utcnow()
+    message: Use aware UTC datetimes; see mypackage/clock.py and docs/adr/0001-aware-utc-datetimes.md.
+    languages: [python]
+    severity: ERROR
+
+  - id: no-shallow-copy-of-module-defaults
+    patterns:
+      - pattern: dict($DEFAULTS)
+      # Only module-level constants (DEFAULTS, BASE_CONFIG, ...). dict(local_var) is fine.
+      - metavariable-regex:
+          metavariable: $DEFAULTS
+          regex: ^(\w+\.)*[A-Z][A-Z0-9_]*$
+    message: dict() is a shallow copy; nested sections alias the source. Use deepcopy + recursive merge.
+    languages: [python]
+    severity: ERROR
+
+  - id: no-retry-swallowing-none
+    patterns:
+      - pattern-inside: |
+          for $X in $RANGE:
+              ...
+      - pattern: |
+          try:
+              ...
+          except $EXC:
+              ...
+              continue
+    message: >-
+      A retry loop that swallows errors must raise (not return None) when attempts run out.
+      Check that the function ends with `raise ... from last_error`.
+    languages: [python]
+    severity: WARNING
+
+  - id: no-broad-except-around-requests
+    patterns:
+      - pattern: |
+          try:
+              ...
+          except requests.exceptions.RequestException:
+              ...
+      - pattern-not: |
+          try:
+              ...
+          except requests.exceptions.SSLError:
+              ...
+          except requests.exceptions.RequestException:
+              ...
+    message: >-
+      RequestException includes SSLError. Handle SSLError separately first,
+      because a TLS failure is a security signal and not a transient error.
+    languages: [python]
+    severity: ERROR
+
+  - id: no-tls-verify-disabled
+    pattern: $SESSION.$METHOD(..., verify=False, ...)
+    message: TLS verification must not be disabled in code; make it a validated config value.
+    languages: [python]
+    severity: ERROR

@@ -1,0 +1,37 @@
+[importlinter]
+root_package = mypackage
+include_external_packages = True
+
+[importlinter:contract:layers]
+name = mypackage is layered
+type = layers
+layers =
+    mypackage.cli
+    mypackage.client
+    mypackage.retry | mypackage.clock
+    mypackage.config
+    mypackage.errors
+
+[importlinter:contract:errors-is-a-leaf]
+name = errors imports nothing from the package
+type = forbidden
+source_modules = mypackage.errors
+# Note: `forbidden_modules = mypackage` (the root package) is silently a no-op,
+# because import-linter will not forbid a source module's own ancestor. List the siblings.
+forbidden_modules =
+    mypackage.cli
+    mypackage.client
+    mypackage.retry
+    mypackage.clock
+    mypackage.config
+
+[importlinter:contract:only-client-does-http]
+name = only client and retry talk to requests
+type = forbidden
+source_modules =
+    mypackage.cli
+    mypackage.config
+    mypackage.clock
+    mypackage.errors
+forbidden_modules = requests
+allow_indirect_imports = True

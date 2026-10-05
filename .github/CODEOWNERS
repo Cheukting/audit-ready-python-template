@@ -1,0 +1,10 @@
+# A human reviewer is required on every change (see branch protection in README).
+# Replace with your team or user handle.
+*                       @your-org/maintainers
+
+# Security-sensitive surfaces get a second pair of eyes.
+/mypackage/retry.py     @your-org/security
+/mypackage/client.py    @your-org/security
+/.github/workflows/     @your-org/security
+/.semgrep.yml           @your-org/security
+/.importlinter          @your-org/security
