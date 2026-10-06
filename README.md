@@ -52,7 +52,7 @@ and update `.importlinter` to match your modules.
 |---|---|
 | Expanded ruff rule set (`DTZ`, `RET`, `S`, `TRY`, `PL`, `D`, …) | `pyproject.toml` `[tool.ruff.lint]` |
 | Custom semgrep rules (naive clock, shallow-copied defaults, retry-returns-`None`, broad `RequestException`, `verify=False`) | `.semgrep.yml` |
-| semgrep in CI and in pre-commit | `ci.yml` → `lint`; `.pre-commit-config.yaml` |
+| semgrep in CI and in pre-commit, on `tests/` too | `ci.yml` → `lint`; `.pre-commit-config.yaml`; `.semgrepignore` |
 | Lockfile in sync: `uv lock --check` | `ci.yml` → `audit` |
 | Known CVEs in runtime deps: `pip-audit --strict` | `ci.yml` → `audit` |
 | Known CVEs incl. dev deps: OSV-Scanner on `uv.lock` | `ci.yml` → `osv` |
@@ -117,6 +117,9 @@ Applying the slide snippets exactly as written turned up a few problems, which a
   This template forbids `mypackage.*` (the child modules) instead.
 - **semgrep**: `pattern: dict($DEFAULTS)` matches every `dict(x)` call. Here it
   is narrowed with `metavariable-regex` to `UPPER_CASE` module constants.
+- **semgrep** skips `tests/` by default, even when the directory is passed on the
+  command line, so `semgrep mypackage/ tests/` scans only `mypackage/`. The
+  `.semgrepignore` here replaces the default list, without its test paths.
 - **osv-scanner** is a Go binary and is not on PyPI, so `uvx osv-scanner` does
   not work. This template uses `google/osv-scanner-action`.
 - **pip-audit** uses `--disable-pip --require-hashes` with the hash-pinned

@@ -1,0 +1,20 @@
+# Semgrep's built-in default ignores tests/, so `semgrep mypackage/ tests/` silently
+# scanned only mypackage/. A .semgrepignore replaces that default entirely: this is
+# the default list minus the "Common test paths" section. Tests are AI-generated
+# code too, and the custom rules guard correctness, not just production security.
+# See https://docs.semgrep.dev/ignoring-files-folders-code
+:include .gitignore
+
+# Version control
+.git
+.svn
+.hg
+
+# Large or generated paths
+build/
+dist/
+vendor/
+.env/
+.tox/
+.venv/
+*.min.js
