@@ -123,10 +123,21 @@ jobs:
       - name: Lockfile is in sync with pyproject.toml
         run: uv lock --check
 
-      - name: Known vulnerabilities (runtime deps)
+      # Two pip-audit runs, because each run queries one database:
+      #  - runtime deps against PyPI's data, which also verifies the locked hashes;
+      #  - every group (dev included) against OSV, which aggregates more advisory
+      #    sources. With -s osv, --require-hashes only checks hashes are present.
+      # osv-scanner would also read uv.lock, but it is a Go binary (not on PyPI)
+      # and its action loads a Docker image by mutable tag.
+      - name: Known vulnerabilities (runtime deps, PyPI DB, hashes verified)
         run: |
           uv export --frozen --no-dev --no-emit-project --format requirements-txt > requirements.txt
           uvx pip-audit --strict --disable-pip --require-hashes --requirement requirements.txt
+
+      - name: Known vulnerabilities (all groups incl. dev, OSV DB)
+        run: |
+          uv export --frozen --all-groups --no-emit-project --format requirements-txt > requirements.txt
+          uvx pip-audit --strict --disable-pip --require-hashes --vulnerability-service osv --requirement requirements.txt
 
       - name: Static security lint
         run: uvx ruff check --select S mypackage/
@@ -143,26 +154,10 @@ jobs:
           name: sbom
           path: sbom.json
 
-  osv:
-    # osv-scanner is a Go binary and is not on PyPI, and its action loads a Docker
-    # image by mutable tag. pip-audit queries the same OSV database, from PyPI.
-    # Every locked dependency, dev groups included. (With -s osv, --require-hashes
-    # only checks hashes are present; the runtime audit above validates them.)
-    name: Known vulnerabilities (OSV, incl. dev deps)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
-      - run: |
-          uv export --frozen --all-groups --no-emit-project --format requirements-txt > requirements.txt
-          uvx pip-audit --strict --disable-pip --require-hashes --vulnerability-service osv --requirement requirements.txt
-
   build:
     name: Build distributions
     runs-on: ubuntu-latest
-    needs: [lint, test, adversarial, types, audit, osv]
+    needs: [lint, test, adversarial, types, audit]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

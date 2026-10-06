@@ -21,7 +21,7 @@
 | Upstream HTTP responses | **Hostile** | `client.parse_page` / `parse_item`, `clock.parse_timestamp` |
 | Network path to upstream | **Hostile** | TLS verification on, `SSLError` never retried |
 | Wall clock / local timezone | Unreliable | Only read in `clock.utc_now`. Everything is aware UTC |
-| Dependencies (`uv.lock`) | Supply chain | `audit` and `osv` CI jobs, SBOM artefact, Dependabot |
+| Dependencies (`uv.lock`) | Supply chain | `audit` CI job (pip-audit against PyPI and OSV), SBOM artefact, Dependabot |
 | GitHub Actions workflows | Supply chain | SHA-pinned actions, least privilege, `zizmor` |
 
 ## Attack classes and our answers

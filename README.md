@@ -54,8 +54,8 @@ and update `.importlinter` to match your modules.
 | Custom semgrep rules (naive clock, shallow-copied defaults, retry-returns-`None`, broad `RequestException`, `verify=False`) | `.semgrep.yml` |
 | semgrep in CI and in pre-commit, on `tests/` too | `ci.yml` → `lint`; `.pre-commit-config.yaml`; `.semgrepignore` |
 | Lockfile in sync: `uv lock --check` | `ci.yml` → `audit` |
-| Known CVEs in runtime deps: `pip-audit --strict` | `ci.yml` → `audit` |
-| Known CVEs incl. dev deps: `pip-audit -s osv` on every locked group | `ci.yml` → `osv` |
+| Known CVEs in runtime deps, hashes verified: `pip-audit --strict` (PyPI DB) | `ci.yml` → `audit` |
+| Known CVEs incl. dev deps: `pip-audit -s osv` on every locked group (OSV DB) | `ci.yml` → `audit` |
 | Workflow static analysis: `zizmor` | `ci.yml` → `audit` |
 | SBOM (CycloneDX) uploaded as an artefact | `ci.yml` → `audit` |
 | Dependabot for update hygiene (**not** vulnerability auditing) | `.github/dependabot.yml` |
@@ -101,8 +101,7 @@ and update `.importlinter` to match your modules.
 | `test` | pytest (random order) on py3.11–3.14, Linux/macOS/Windows, 4 timezones; coverage < 100% |
 | `adversarial` | fuzzing and fault injection with 1000 examples per property |
 | `types` | `ty`, `mypy --strict`, import-linter contracts |
-| `audit` | stale lockfile, known CVEs, ruff `S`, zizmor findings |
-| `osv` | known CVEs in any locked dependency |
+| `audit` | stale lockfile, known CVEs (runtime via PyPI, every group via OSV), ruff `S`, zizmor findings |
 | `build` | `twine check --strict`, `py.typed` missing from the wheel |
 
 Every action is pinned to a commit SHA, the workflow has `contents: read`

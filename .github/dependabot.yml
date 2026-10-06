@@ -1,5 +1,5 @@
 # Dependabot keeps dependencies up to date. It does NOT audit for vulnerabilities;
-# the `audit` and `osv` CI jobs do that, and fail the build on a known CVE.
+# the `audit` CI job does that (pip-audit against PyPI and OSV), and fails the build on a known CVE.
 version: 2
 updates:
   - package-ecosystem: uv
