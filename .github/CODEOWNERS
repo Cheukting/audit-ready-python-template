@@ -7,4 +7,5 @@
 /mypackage/client.py    @your-org/security
 /.github/workflows/     @your-org/security
 /.semgrep.yml           @your-org/security
+/.semgrepignore         @your-org/security
 /.importlinter          @your-org/security

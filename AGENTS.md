@@ -13,7 +13,7 @@ The checks below are enforced by CI. Follow them, and do not weaken them.
 - Copy config with `dict(DEFAULTS)`. Use `load_config()`, which deep-copies.
 - Add `# noqa`, `# type: ignore`, `# nosemgrep`, `pragma: no cover`, or lower the
   coverage gate, unless a human asks for it. Always include a reason.
-- Edit `.semgrep.yml`, `.importlinter`, `[tool.ruff]`, or CI workflows to make a check pass.
+- Edit `.semgrep.yml`, `.semgrepignore`, `.importlinter`, `[tool.ruff]`, or CI workflows to make a check pass.
 
 ## Always
 
