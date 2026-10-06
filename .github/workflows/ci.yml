@@ -144,18 +144,20 @@ jobs:
           path: sbom.json
 
   osv:
-    # osv-scanner is a Go binary and is not on PyPI, so use Google's action.
-    # It scans uv.lock, dev dependencies included.
+    # osv-scanner is a Go binary and is not on PyPI, and its action loads a Docker
+    # image by mutable tag. pip-audit queries the same OSV database, from PyPI.
+    # Every locked dependency, dev groups included. (With -s osv, --require-hashes
+    # only checks hashes are present; the runtime audit above validates them.)
     name: Known vulnerabilities (OSV, incl. dev deps)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: google/osv-scanner-action/osv-scanner-action@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0
-        with:
-          scan-args: |-
-            --lockfile=uv.lock
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - run: |
+          uv export --frozen --all-groups --no-emit-project --format requirements-txt > requirements.txt
+          uvx pip-audit --strict --disable-pip --require-hashes --vulnerability-service osv --requirement requirements.txt
 
   build:
     name: Build distributions

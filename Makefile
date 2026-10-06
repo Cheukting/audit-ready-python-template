@@ -38,6 +38,8 @@ audit:  ## Lockfile sync, known CVEs, workflow analysis
 	uv lock --check
 	uv export --frozen --no-dev --no-emit-project --format requirements-txt > .requirements.audit.txt
 	uvx pip-audit --strict --disable-pip --require-hashes --requirement .requirements.audit.txt
+	uv export --frozen --all-groups --no-emit-project --format requirements-txt > .requirements.audit.txt
+	uvx pip-audit --strict --disable-pip --require-hashes --vulnerability-service osv --requirement .requirements.audit.txt
 	rm -f .requirements.audit.txt
 	uvx zizmor --min-severity medium .github/workflows/
 

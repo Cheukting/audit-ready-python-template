@@ -55,7 +55,7 @@ and update `.importlinter` to match your modules.
 | semgrep in CI and in pre-commit, on `tests/` too | `ci.yml` → `lint`; `.pre-commit-config.yaml`; `.semgrepignore` |
 | Lockfile in sync: `uv lock --check` | `ci.yml` → `audit` |
 | Known CVEs in runtime deps: `pip-audit --strict` | `ci.yml` → `audit` |
-| Known CVEs incl. dev deps: OSV-Scanner on `uv.lock` | `ci.yml` → `osv` |
+| Known CVEs incl. dev deps: `pip-audit -s osv` on every locked group | `ci.yml` → `osv` |
 | Workflow static analysis: `zizmor` | `ci.yml` → `audit` |
 | SBOM (CycloneDX) uploaded as an artefact | `ci.yml` → `audit` |
 | Dependabot for update hygiene (**not** vulnerability auditing) | `.github/dependabot.yml` |
@@ -121,7 +121,9 @@ Applying the slide snippets exactly as written turned up a few problems, which a
   command line, so `semgrep mypackage/ tests/` scans only `mypackage/`. The
   `.semgrepignore` here replaces the default list, without its test paths.
 - **osv-scanner** is a Go binary and is not on PyPI, so `uvx osv-scanner` does
-  not work. This template uses `google/osv-scanner-action`.
+  not work (and the PyPI package `osv` is an unrelated, archived project). Its
+  GitHub Action loads a Docker image by mutable tag, so this template runs
+  `pip-audit --vulnerability-service osv` on the `--all-groups` export instead.
 - **pip-audit** uses `--disable-pip --require-hashes` with the hash-pinned
   `uv export`, which skips building a temporary venv.
 - **cyclonedx-py** is run with `uvx --from cyclonedx-bom`, against the runtime-only `.venv`.
