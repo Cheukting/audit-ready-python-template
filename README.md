@@ -81,7 +81,7 @@ and update `.importlinter` to match your modules.
 | `Protocol`s for callables and collaborators | `retry.Fetch`, `clock.Clock`, `client.HttpSession` |
 | `py.typed` shipped in the wheel (checked in CI) | `mypackage/py.typed`, `ci.yml` → `build` |
 | Banned APIs (`utcnow`, `requests.get`, `pickle`, …), no relative imports | `pyproject.toml` `[tool.ruff.lint.flake8-tidy-imports]` |
-| import-linter contracts: layers, `errors` is a leaf, only `client`/`retry` import `requests` | `.importlinter` |
+| import-linter contracts: exhaustive layers (every module must be placed), `errors` is a leaf, only `client`/`retry` import `requests` | `.importlinter` |
 | `ty` (and import-linter) in pre-commit | `.pre-commit-config.yaml` |
 
 ### Human in the loop
@@ -114,7 +114,7 @@ Applying the slide snippets exactly as written turned up a few problems, which a
 
 - **import-linter**: `forbidden_modules = mypackage` (forbidding the root
   package) is silently a no-op, so the "errors is a leaf" contract never fails.
-  This template lists the sibling modules explicitly.
+  This template forbids `mypackage.*` (the child modules) instead.
 - **semgrep**: `pattern: dict($DEFAULTS)` matches every `dict(x)` call. Here it
   is narrowed with `metavariable-regex` to `UPPER_CASE` module constants.
 - **osv-scanner** is a Go binary and is not on PyPI, so `uvx osv-scanner` does
