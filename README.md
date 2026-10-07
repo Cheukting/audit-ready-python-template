@@ -112,35 +112,6 @@ the `tools` and `semgrep` dependency groups in `uv.lock`, so they are hash-pinne
 audited with everything else, and updated by Dependabot. Only the jobs that use
 them install them.
 
-## Differences from the workshop slides
-
-Applying the slide snippets exactly as written turned up a few problems, which are fixed here:
-
-- **import-linter**: `forbidden_modules = mypackage` (forbidding the root
-  package) is silently a no-op, so the "errors is a leaf" contract never fails.
-  This template forbids `mypackage.*` (the child modules) instead.
-- **semgrep**: `pattern: dict($DEFAULTS)` matches every `dict(x)` call. Here it
-  is narrowed with `metavariable-regex` to `UPPER_CASE` module constants.
-- **semgrep** skips `tests/` by default, even when the directory is passed on the
-  command line, so `semgrep mypackage/ tests/` scans only `mypackage/`. The
-  `.semgrepignore` here replaces the default list, without its test paths.
-- **osv-scanner** is a Go binary and is not on PyPI, so `uvx osv-scanner` does
-  not work (and the PyPI package `osv` is an unrelated, archived project). Its
-  GitHub Action loads a Docker image by mutable tag, so this template runs
-  `pip-audit --vulnerability-service osv` on the `--all-groups` export instead.
-- **pip-audit** uses `--disable-pip --require-hashes` with the hash-pinned
-  `uv export`. Without `--disable-pip`, pip-audit installs the requirements into a
-  temporary venv, which runs their build code; with it, nothing is installed. In
-  this mode `--require-hashes` only checks that hashes are *present*, with either
-  vulnerability service (a requirements file with every hash zeroed still passes),
-  so hash validity is left to uv, which checks downloads against `uv.lock`.
-- **cyclonedx-py**: `cyclonedx-py environment` with no path describes the Python
-  running it. Under `uvx`, that is an SBOM of the tool itself: valid JSON, wrong
-  contents. This template points it at a runtime-only environment, passes
-  `--pyproject` so the SBOM records `mypackage` as its subject, makes the output
-  reproducible, and checks the contents in CI. (`uvx cyclonedx-py` works through an
-  alias package; `--from cyclonedx-bom` installs the real package directly.)
-
 ## Recommended repository settings
 
 These can't be set from a file:
