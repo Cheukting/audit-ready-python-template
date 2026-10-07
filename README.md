@@ -57,7 +57,7 @@ and update `.importlinter` to match your modules.
 | Known CVEs in runtime deps: `pip-audit --strict` (PyPI DB) | `ci.yml` → `audit` |
 | Known CVEs incl. dev deps: `pip-audit -s osv` on every locked group (OSV DB) | `ci.yml` → `audit` |
 | Workflow static analysis: `zizmor` | `ci.yml` → `audit` |
-| SBOM (CycloneDX) uploaded as an artefact | `ci.yml` → `audit` |
+| SBOM (CycloneDX, reproducible, contents checked) uploaded as an artefact | `ci.yml` → `audit` |
 | Dependabot for update hygiene (**not** vulnerability auditing) | `.github/dependabot.yml` |
 
 ### Exercise 3: Adversarial review
@@ -129,7 +129,12 @@ Applying the slide snippets exactly as written turned up a few problems, which a
   this mode `--require-hashes` only checks that hashes are *present*, with either
   vulnerability service (a requirements file with every hash zeroed still passes),
   so hash validity is left to uv, which checks downloads against `uv.lock`.
-- **cyclonedx-py** is run with `uvx --from cyclonedx-bom`, against the runtime-only `.venv`.
+- **cyclonedx-py**: `cyclonedx-py environment` with no path describes the Python
+  running it. Under `uvx`, that is an SBOM of the tool itself: valid JSON, wrong
+  contents. This template points it at the runtime-only `.venv`, passes
+  `--pyproject` so the SBOM records `mypackage` as its subject, makes the output
+  reproducible, and checks the contents in CI. (`uvx cyclonedx-py` works through an
+  alias package; `--from cyclonedx-bom` installs the real package directly.)
 
 ## Recommended repository settings
 
