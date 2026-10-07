@@ -1,6 +1,6 @@
 """Typed configuration with immutable defaults.
 
-The workshop lessons this module encodes:
+The rules this module follows:
 
 - The config shape is a ``TypedDict``, so the type checker sees typos and wrong types.
 - ``DEFAULTS`` is ``Final`` and is never handed out directly. ``load_config``

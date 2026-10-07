@@ -1,6 +1,6 @@
 """Retry with exponential backoff that fails loudly.
 
-This fixes the ``fetch_with_retry`` from the workshop:
+It avoids the usual mistakes in a hand-written retry loop:
 
 - When every attempt fails it raises ``RetryExhaustedError``. It never returns
   ``None``, so a caller cannot mistake "the server was down" for "no result".
