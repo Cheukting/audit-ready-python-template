@@ -121,8 +121,11 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
 
+      # Unset the workflow-wide UV_FROZEN for this one step: with it, `uv lock --check`
+      # only checks that uv.lock is valid, not that it matches pyproject.toml, so a
+      # stale lockfile passed. (`--locked` can't be combined with UV_FROZEN.)
       - name: Lockfile is in sync with pyproject.toml
-        run: uv lock --check
+        run: env -u UV_FROZEN uv lock --check
 
       # dev (ruff) plus the locked tools group (pip-audit, zizmor, cyclonedx-bom).
       - run: uv sync --group tools
