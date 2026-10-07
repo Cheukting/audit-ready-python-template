@@ -54,7 +54,7 @@ and update `.importlinter` to match your modules.
 | Custom semgrep rules (naive clock, shallow-copied defaults, retry-returns-`None`, broad `RequestException`, `verify=False`) | `.semgrep.yml` |
 | semgrep in CI and in pre-commit, on `tests/` too | `ci.yml` → `lint`; `.pre-commit-config.yaml`; `.semgrepignore` |
 | Lockfile in sync: `uv lock --check` | `ci.yml` → `audit` |
-| Known CVEs in runtime deps, hashes verified: `pip-audit --strict` (PyPI DB) | `ci.yml` → `audit` |
+| Known CVEs in runtime deps: `pip-audit --strict` (PyPI DB) | `ci.yml` → `audit` |
 | Known CVEs incl. dev deps: `pip-audit -s osv` on every locked group (OSV DB) | `ci.yml` → `audit` |
 | Workflow static analysis: `zizmor` | `ci.yml` → `audit` |
 | SBOM (CycloneDX) uploaded as an artefact | `ci.yml` → `audit` |
@@ -124,7 +124,11 @@ Applying the slide snippets exactly as written turned up a few problems, which a
   GitHub Action loads a Docker image by mutable tag, so this template runs
   `pip-audit --vulnerability-service osv` on the `--all-groups` export instead.
 - **pip-audit** uses `--disable-pip --require-hashes` with the hash-pinned
-  `uv export`, which skips building a temporary venv.
+  `uv export`. Without `--disable-pip`, pip-audit installs the requirements into a
+  temporary venv, which runs their build code; with it, nothing is installed. In
+  this mode `--require-hashes` only checks that hashes are *present*, with either
+  vulnerability service (a requirements file with every hash zeroed still passes),
+  so hash validity is left to uv, which checks downloads against `uv.lock`.
 - **cyclonedx-py** is run with `uvx --from cyclonedx-bom`, against the runtime-only `.venv`.
 
 ## Recommended repository settings

@@ -124,12 +124,16 @@ jobs:
         run: uv lock --check
 
       # Two pip-audit runs, because each run queries one database:
-      #  - runtime deps against PyPI's data, which also verifies the locked hashes;
-      #  - every group (dev included) against OSV, which aggregates more advisory
-      #    sources. With -s osv, --require-hashes only checks hashes are present.
+      #  - runtime deps against PyPI's data;
+      #  - every group (dev included) against OSV, which aggregates more advisory sources.
+      # --disable-pip audits the pinned versions without installing them (pip-audit -r
+      # is otherwise "functionally equivalent to pip install -r"). In that mode
+      # --require-hashes only checks hashes are PRESENT, for either service, despite
+      # pip-audit's warning suggesting -s pypi validates them. Hash validity comes
+      # from uv, which checks every download against uv.lock.
       # osv-scanner would also read uv.lock, but it is a Go binary (not on PyPI)
       # and its action loads a Docker image by mutable tag.
-      - name: Known vulnerabilities (runtime deps, PyPI DB, hashes verified)
+      - name: Known vulnerabilities (runtime deps, PyPI DB)
         run: |
           uv export --frozen --no-dev --no-emit-project --format requirements-txt > requirements.txt
           uvx pip-audit --strict --disable-pip --require-hashes --requirement requirements.txt
