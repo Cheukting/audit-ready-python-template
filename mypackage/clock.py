@@ -7,12 +7,14 @@ this module, so the type checker can tell the two apart. See
 """
 
 import math
-from datetime import UTC, datetime
-from typing import NewType, Protocol
+from datetime import UTC, datetime, timedelta
+from typing import Final, NewType, Protocol
 
 from mypackage.errors import UpstreamError
 
 AwareDatetime = NewType("AwareDatetime", datetime)
+
+_EPOCH: Final = datetime(1970, 1, 1, tzinfo=UTC)
 
 
 class Clock(Protocol):
@@ -73,8 +75,10 @@ def from_epoch(seconds: object) -> AwareDatetime:
     if not math.isfinite(seconds):
         msg = f"epoch seconds must be finite, got {seconds!r}"
         raise UpstreamError(msg)
+    # Not datetime.fromtimestamp: it goes through the OS, and Windows rejects
+    # anything more than 12 hours before 1970. This is the same on every platform.
     try:
-        return AwareDatetime(datetime.fromtimestamp(seconds, tz=UTC))
-    except (OverflowError, OSError, ValueError) as exc:
+        return AwareDatetime(_EPOCH + timedelta(seconds=seconds))
+    except OverflowError as exc:
         msg = f"epoch seconds out of range: {seconds!r}"
         raise UpstreamError(msg) from exc

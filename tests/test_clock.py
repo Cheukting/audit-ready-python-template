@@ -40,6 +40,11 @@ def test_from_epoch():
     assert from_epoch(0) == datetime(1970, 1, 1, tzinfo=UTC)
 
 
+def test_from_epoch_before_1970():
+    # Windows' fromtimestamp rejects this; from_epoch must not.
+    assert from_epoch(-86400) == datetime(1969, 12, 31, tzinfo=UTC)
+
+
 @pytest.mark.parametrize("raw", [float("inf"), float("nan"), 10**20, "0", True, None])
 def test_from_epoch_rejects_garbage(raw):
     with pytest.raises(UpstreamError):
