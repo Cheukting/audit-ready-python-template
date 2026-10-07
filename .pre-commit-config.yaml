@@ -11,30 +11,46 @@ repos:
       - id: trailing-whitespace
       - id: detect-private-key
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.10
-    hooks:
-      - id: ruff-check
-        args: [--fix]
-      - id: ruff-format
-
-  - repo: https://github.com/astral-sh/ty-pre-commit
-    rev: v0.0.84
-    hooks:
-      - id: ty
-
-  - repo: https://github.com/semgrep/semgrep
-    rev: v1.179.0
-    hooks:
-      - id: semgrep
-        args: [--config, .semgrep.yml, --error,
-               --disable-version-check, --quiet, --skip-unknown-extensions]
-
+  # ruff, ty and semgrep run from uv.lock, the same versions CI and the Makefile use.
+  # Upstream hook repos pin their own versions in `rev:`, which Dependabot bumps
+  # separately from uv.lock, so local and CI tools would drift. Each hook keeps
+  # the settings of its upstream definition (file types, serial, pass_filenames).
+  # --frozen: a commit never rewrites uv.lock; CI's lockfile check catches drift.
   - repo: local
     hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --frozen ruff check --force-exclude --fix
+        language: system
+        types_or: [python, pyi, jupyter]
+        require_serial: true
+
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --frozen ruff format --force-exclude
+        language: system
+        types_or: [python, pyi, jupyter, markdown]
+        require_serial: true
+
+      # Whole project, not just changed files: a change in b.py can break a.py.
+      # always_run so deletion-only commits are checked too (as upstream).
+      - id: ty
+        name: ty
+        entry: uv run --frozen ty check
+        language: system
+        types_or: [python, pyi, jupyter]
+        pass_filenames: false
+        always_run: true
+        require_serial: true
+
+      - id: semgrep
+        name: semgrep
+        entry: uv run --frozen --group semgrep semgrep --config .semgrep.yml --error --disable-version-check --quiet --skip-unknown-extensions
+        language: system
+
       - id: import-linter
         name: import-linter
-        entry: uv run lint-imports
+        entry: uv run --frozen lint-imports
         language: system
         pass_filenames: false
         types: [python]

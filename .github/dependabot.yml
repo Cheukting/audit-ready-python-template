@@ -13,6 +13,7 @@ updates:
     directory: /
     schedule:
       interval: weekly
+  # Only pre-commit-hooks: ruff, ty and semgrep hooks run from uv.lock (uv ecosystem above).
   - package-ecosystem: pre-commit
     directory: /
     schedule:

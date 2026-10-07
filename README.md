@@ -82,7 +82,7 @@ and update `.importlinter` to match your modules.
 | `py.typed` shipped in the wheel (checked in CI) | `mypackage/py.typed`, `ci.yml` → `build` |
 | Banned APIs (`utcnow`, `requests.get`, `pickle`, …), no relative imports | `pyproject.toml` `[tool.ruff.lint.flake8-tidy-imports]` |
 | import-linter contracts: exhaustive layers (every module must be placed), `errors` is a leaf, only `client`/`retry` import `requests` | `.importlinter` |
-| `ty` (and import-linter) in pre-commit | `.pre-commit-config.yaml` |
+| `ty` (and import-linter) in pre-commit, from `uv.lock` like ruff and semgrep, so hooks and CI run the same versions | `.pre-commit-config.yaml` |
 
 ### Human in the loop
 
