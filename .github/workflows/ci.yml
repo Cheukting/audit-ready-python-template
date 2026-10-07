@@ -32,14 +32,15 @@ jobs:
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           enable-cache: true
-      - run: uv sync --all-groups
+      # dev (the default group) for ruff, plus the locked semgrep group.
+      - run: uv sync --group semgrep
 
       - name: ruff check
         run: uv run ruff check --output-format=github .
       - name: ruff format
         run: uv run ruff format --check --diff .
       - name: Custom static analysis rules
-        run: uvx semgrep --config .semgrep.yml --error --disable-version-check mypackage/ tests/
+        run: uv run semgrep --config .semgrep.yml --error --disable-version-check mypackage/ tests/
 
   test:
     name: Test (py${{ matrix.python-version }} / ${{ matrix.os }} / ${{ matrix.tz || 'default tz' }})
@@ -69,7 +70,7 @@ jobs:
         with:
           enable-cache: true
           python-version: ${{ matrix.python-version }}
-      - run: uv sync --all-groups
+      - run: uv sync    # dev only: the tools/semgrep groups are not needed to test
 
       - name: Run tests (random order, coverage gate)
         run: uv run pytest --cov --cov-report=xml --junitxml=junit.xml
@@ -92,7 +93,7 @@ jobs:
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           enable-cache: true
-      - run: uv sync --all-groups
+      - run: uv sync
       - name: Hostile upstream, parser fuzzing, fault injection
         run: uv run pytest -m adversarial --hypothesis-show-statistics
 
@@ -106,7 +107,7 @@ jobs:
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           enable-cache: true
-      - run: uv sync --all-groups
+      - run: uv sync
       - run: uv run ty check                    # package and tests
       - run: uv run mypy --strict mypackage/      # until ty is 1.0
       - run: uv run lint-imports
@@ -123,9 +124,13 @@ jobs:
       - name: Lockfile is in sync with pyproject.toml
         run: uv lock --check
 
+      # dev (ruff) plus the locked tools group (pip-audit, zizmor, cyclonedx-bom).
+      - run: uv sync --group tools
+
       # Two pip-audit runs, because each run queries one database:
       #  - runtime deps against PyPI's data;
-      #  - every group (dev included) against OSV, which aggregates more advisory sources.
+      #  - every group (dev and the CI tools included) against OSV, which aggregates
+      #    more advisory sources.
       # --disable-pip audits the pinned versions without installing them (pip-audit -r
       # is otherwise "functionally equivalent to pip install -r"). In that mode
       # --require-hashes only checks hashes are PRESENT, for either service, despite
@@ -136,31 +141,32 @@ jobs:
       - name: Known vulnerabilities (runtime deps, PyPI DB)
         run: |
           uv export --frozen --no-dev --no-emit-project --format requirements-txt > requirements.txt
-          uvx pip-audit --strict --disable-pip --require-hashes --requirement requirements.txt
+          uv run pip-audit --strict --disable-pip --require-hashes --requirement requirements.txt
 
-      - name: Known vulnerabilities (all groups incl. dev, OSV DB)
+      - name: Known vulnerabilities (all groups incl. dev and tools, OSV DB)
         run: |
           uv export --frozen --all-groups --no-emit-project --format requirements-txt > requirements.txt
-          uvx pip-audit --strict --disable-pip --require-hashes --vulnerability-service osv --requirement requirements.txt
+          uv run pip-audit --strict --disable-pip --require-hashes --vulnerability-service osv --requirement requirements.txt
 
       - name: Static security lint
-        run: uvx ruff check --select S mypackage/
+        run: uv run ruff check --select S mypackage/
 
       - name: Workflow static analysis
-        run: uvx zizmor --min-severity medium .github/workflows/
+        run: uv run zizmor --min-severity medium .github/workflows/
 
-      # Point cyclonedx-py at the project's runtime-only .venv. With no path it describes
-      # the Python running it: under uvx, that is an SBOM of cyclonedx-bom itself.
+      # Point cyclonedx-py at a runtime-only environment. With no path it describes the
+      # Python running it (here, the .venv holding dev and the tools). The runtime env is
+      # built in a separate directory, so .venv keeps the tools and the SBOM excludes them.
       # --pyproject records mypackage as the SBOM's subject, not as one of its components.
       # --output-reproducible with SOURCE_DATE_EPOCH (the commit time) drops the random
       # serial number, so the same commit always gives a byte-identical SBOM.
       - name: SBOM
         run: |
-          uv sync --no-dev
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/runtime-venv" uv sync --no-dev
           export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
-          uvx --from cyclonedx-bom cyclonedx-py environment \
+          uv run --no-sync cyclonedx-py environment \
             --pyproject pyproject.toml --mc-type library --output-reproducible \
-            --output-format JSON --output-file sbom.json .venv
+            --output-format JSON --output-file sbom.json "$RUNNER_TEMP/runtime-venv"
 
       # cyclonedx-py validates the format, not the contents: an SBOM of the wrong
       # environment is still valid CycloneDX. Check it describes this project.
@@ -173,7 +179,7 @@ jobs:
           subject = bom["metadata"].get("component", {}).get("name")
           assert subject == "mypackage", f"SBOM subject is {subject!r}, not 'mypackage' (--pyproject missing?)"
           assert "requests" in names, f"runtime dependency missing from SBOM: {sorted(names)}"
-          assert not names & {"pytest", "cyclonedx-bom"}, f"dev or tool packages in SBOM: {sorted(names)}"
+          assert not names & {"pytest", "pip-audit", "cyclonedx-bom"}, f"dev or tool packages in SBOM: {sorted(names)}"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -191,7 +197,7 @@ jobs:
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       - run: uv build
       - name: Check metadata
-        run: uvx twine check --strict dist/*
+        run: uv run --only-group tools twine check --strict dist/*   # tools only, no project install
       - name: Wheel ships type information (py.typed)
         run: unzip -l dist/*.whl | grep -q 'mypackage/py.typed'
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

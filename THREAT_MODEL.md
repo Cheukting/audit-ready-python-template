@@ -22,6 +22,7 @@
 | Network path to upstream | **Hostile** | TLS verification on, `SSLError` never retried |
 | Wall clock / local timezone | Unreliable | Only read in `clock.utc_now`. Everything is aware UTC |
 | Dependencies (`uv.lock`) | Supply chain | `audit` CI job (pip-audit against PyPI and OSV), SBOM artefact, Dependabot |
+| CI tools (semgrep, pip-audit, zizmor, cyclonedx-bom, twine) | Supply chain | Locked and hash-pinned in `uv.lock` (`tools` / `semgrep` groups, not `uvx`), covered by the OSV audit, installed only in the jobs that run them |
 | GitHub Actions workflows | Supply chain | SHA-pinned actions, least privilege, `zizmor` |
 
 ## Attack classes and our answers

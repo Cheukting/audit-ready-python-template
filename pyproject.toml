@@ -40,6 +40,20 @@ dev = [
     # --- hooks ------------------------------------------------------------
     "pre-commit>=4.0",
 ]
+# CI and audit tools live in uv.lock rather than `uvx tool`, so every package
+# (dependencies included) is version- and hash-pinned, covered by the OSV audit,
+# and updated by Dependabot. They are not default groups: the test matrix does
+# not install them; only the jobs that run them do (`--group tools` / `--group semgrep`).
+tools = [
+    "pip-audit>=2.10",
+    "zizmor>=1.30",
+    "cyclonedx-bom>=7.5",
+    "twine>=7.0",
+]
+# Separate from `tools` because semgrep alone brings ~100 packages.
+semgrep = [
+    "semgrep>=1.179",
+]
 
 [build-system]
 requires = ["hatchling"]

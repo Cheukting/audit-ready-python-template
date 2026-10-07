@@ -10,7 +10,7 @@ install:  ## Create the dev environment and install the git hooks
 lint:  ## ruff (lint + format check) and custom semgrep rules
 	uv run ruff check .
 	uv run ruff format --check .
-	uvx semgrep --config .semgrep.yml --error --disable-version-check --quiet mypackage/ tests/
+	uv run --group semgrep semgrep --config .semgrep.yml --error --disable-version-check --quiet mypackage/ tests/
 
 format:  ## Apply ruff formatting and safe fixes
 	uv run ruff check --fix .
@@ -37,12 +37,12 @@ types:  ## ty, mypy --strict, and import-linter contracts
 audit:  ## Lockfile sync, known CVEs, workflow analysis
 	uv lock --check
 	uv export --frozen --no-dev --no-emit-project --format requirements-txt > .requirements.audit.txt
-	uvx pip-audit --strict --disable-pip --require-hashes --requirement .requirements.audit.txt
-	@# Second run: every group (dev included) against OSV. See ci.yml -> audit for why two runs.
+	uv run --group tools pip-audit --strict --disable-pip --require-hashes --requirement .requirements.audit.txt
+	@# Second run: every group (dev and tools included) against OSV. See ci.yml -> audit for why two runs.
 	uv export --frozen --all-groups --no-emit-project --format requirements-txt > .requirements.audit.txt
-	uvx pip-audit --strict --disable-pip --require-hashes --vulnerability-service osv --requirement .requirements.audit.txt
+	uv run --group tools pip-audit --strict --disable-pip --require-hashes --vulnerability-service osv --requirement .requirements.audit.txt
 	rm -f .requirements.audit.txt
-	uvx zizmor --min-severity medium .github/workflows/
+	uv run --group tools zizmor --min-severity medium .github/workflows/
 
 check: lint types cov adversarial audit  ## Everything CI runs (except the OS/TZ matrix)
 

@@ -105,7 +105,12 @@ and update `.importlinter` to match your modules.
 | `build` | `twine check --strict`, `py.typed` missing from the wheel |
 
 Every action is pinned to a commit SHA, the workflow has `contents: read`
-permissions, and checkout does not persist credentials.
+permissions, and checkout does not persist credentials. The CI tools themselves
+(semgrep, pip-audit, zizmor, cyclonedx-bom, twine) are not run with `uvx`, which
+would fetch the latest version and unpinned dependencies on every run. They are
+the `tools` and `semgrep` dependency groups in `uv.lock`, so they are hash-pinned,
+audited with everything else, and updated by Dependabot. Only the jobs that use
+them install them.
 
 ## Differences from the workshop slides
 
@@ -131,7 +136,7 @@ Applying the slide snippets exactly as written turned up a few problems, which a
   so hash validity is left to uv, which checks downloads against `uv.lock`.
 - **cyclonedx-py**: `cyclonedx-py environment` with no path describes the Python
   running it. Under `uvx`, that is an SBOM of the tool itself: valid JSON, wrong
-  contents. This template points it at the runtime-only `.venv`, passes
+  contents. This template points it at a runtime-only environment, passes
   `--pyproject` so the SBOM records `mypackage` as its subject, makes the output
   reproducible, and checks the contents in CI. (`uvx cyclonedx-py` works through an
   alias package; `--from cyclonedx-bom` installs the real package directly.)
