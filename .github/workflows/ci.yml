@@ -149,14 +149,16 @@ jobs:
       # from uv, which checks every download against uv.lock.
       # osv-scanner would also read uv.lock, but it is a Go binary (not on PyPI)
       # and its action loads a Docker image by mutable tag.
+      # --output-file, not `> requirements.txt`: under FORCE_COLOR, uv colours its
+      # stdout, and pip-audit cannot parse the escape codes.
       - name: Known vulnerabilities (runtime deps, PyPI DB)
         run: |
-          uv export --frozen --no-dev --no-emit-project --format requirements-txt > requirements.txt
+          uv export --frozen --no-dev --no-emit-project --format requirements-txt --quiet --output-file requirements.txt
           uv run pip-audit --strict --disable-pip --require-hashes --requirement requirements.txt
 
       - name: Known vulnerabilities (all groups incl. dev and tools, OSV DB)
         run: |
-          uv export --frozen --all-groups --no-emit-project --format requirements-txt > requirements.txt
+          uv export --frozen --all-groups --no-emit-project --format requirements-txt --quiet --output-file requirements.txt
           uv run pip-audit --strict --disable-pip --require-hashes --vulnerability-service osv --requirement requirements.txt
 
       - name: Static security lint

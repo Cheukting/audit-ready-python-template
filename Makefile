@@ -36,10 +36,10 @@ types:  ## ty, mypy --strict, and import-linter contracts
 
 audit:  ## Lockfile sync, known CVEs, workflow analysis
 	uv lock --check
-	uv export --frozen --no-dev --no-emit-project --format requirements-txt > .requirements.audit.txt
+	uv export --frozen --no-dev --no-emit-project --format requirements-txt --quiet --output-file .requirements.audit.txt
 	uv run --group tools pip-audit --strict --disable-pip --require-hashes --requirement .requirements.audit.txt
 	@# Second run: every group (dev and tools included) against OSV. See ci.yml -> audit for why two runs.
-	uv export --frozen --all-groups --no-emit-project --format requirements-txt > .requirements.audit.txt
+	uv export --frozen --all-groups --no-emit-project --format requirements-txt --quiet --output-file .requirements.audit.txt
 	uv run --group tools pip-audit --strict --disable-pip --require-hashes --vulnerability-service osv --requirement .requirements.audit.txt
 	rm -f .requirements.audit.txt
 	uv run --group tools zizmor --min-severity medium .github/workflows/
