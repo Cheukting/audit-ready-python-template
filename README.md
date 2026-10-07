@@ -12,8 +12,9 @@ after the first incident.
 
 `mypackage/` is a small, working example: a paginated HTTP client and CLI.
 Every rule has real code to check, and you can see what "passing" looks like.
-It includes a **fixed** version of the workshop's `fetch_with_retry`: it never
-returns `None`, never retries a TLS failure, and never sleeps after the last attempt.
+It includes a **fixed** version of the workshop's `fetch_user` retry loop (and its
+`fetch_with_retry` helper): it never returns `None`, never retries a TLS failure,
+and never sleeps after the last attempt.
 
 ## Quick start
 
