@@ -26,17 +26,17 @@ dev = [
     # --- tests -----------------------------------------------------------
     "pytest>=8.2",
     "pytest-cov>=5.0",
-    "hypothesis>=6.112",        # property-based testing
+    "hypothesis>=6.169.0",        # property-based testing
     "pytest-randomly>=3.15",    # order-dependence detector
     "pytest-timeout>=2.3",      # hangs fail instead of wedging CI
     "time-machine>=2.15",       # deterministic clock, incl. tz
     # --- lint & architecture --------------------------------------------
-    "ruff>=0.15",
+    "ruff>=0.17.0",
     "import-linter>=2.0",
     # --- types ------------------------------------------------------------
-    "ty>=0.0.1a1",              # Astral type checker (pre-1.0; the lockfile pins it exactly)
+    "ty>=0.0.86",              # Astral type checker (pre-1.0; the lockfile pins it exactly)
     "mypy>=1.11",               # cross-check while ty matures
-    "types-requests>=2.32",
+    "types-requests>=2.33.0.20261006",
     # --- hooks ------------------------------------------------------------
     "pre-commit>=4.0",
 ]
@@ -52,7 +52,7 @@ tools = [
 ]
 # Separate from `tools` because semgrep alone brings ~100 packages.
 semgrep = [
-    "semgrep>=1.179",
+    "semgrep>=1.180.0",
 ]
 
 [build-system]
