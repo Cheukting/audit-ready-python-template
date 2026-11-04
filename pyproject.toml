@@ -24,21 +24,21 @@ mypackage = "mypackage.cli:main"
 [dependency-groups]
 dev = [
     # --- tests -----------------------------------------------------------
-    "pytest>=8.2",
+    "pytest>=9.2.0",
     "pytest-cov>=5.0",
-    "hypothesis>=6.112",        # property-based testing
+    "hypothesis>=6.170.14",        # property-based testing
     "pytest-randomly>=3.15",    # order-dependence detector
     "pytest-timeout>=2.3",      # hangs fail instead of wedging CI
-    "time-machine>=2.15",       # deterministic clock, incl. tz
+    "time-machine>=3.6.0",       # deterministic clock, incl. tz
     # --- lint & architecture --------------------------------------------
-    "ruff>=0.15",
+    "ruff>=0.17.3",
     "import-linter>=2.0",
     # --- types ------------------------------------------------------------
-    "ty>=0.0.1a1",              # Astral type checker (pre-1.0; the lockfile pins it exactly)
-    "mypy>=1.11",               # cross-check while ty matures
-    "types-requests>=2.32",
+    "ty>=0.0.95",              # Astral type checker (pre-1.0; the lockfile pins it exactly)
+    "mypy>=2.4.1",               # cross-check while ty matures
+    "types-requests>=2.33.0.20261030",
     # --- hooks ------------------------------------------------------------
-    "pre-commit>=4.0",
+    "pre-commit>=4.7.0",
 ]
 # CI and audit tools live in uv.lock rather than `uvx tool`, so every package
 # (dependencies included) is version- and hash-pinned, covered by the OSV audit,
@@ -46,13 +46,13 @@ dev = [
 # not install them; only the jobs that run them do (`--group tools` / `--group semgrep`).
 tools = [
     "pip-audit>=2.10",
-    "zizmor>=1.30",
-    "cyclonedx-bom>=7.5",
+    "zizmor>=1.31.1",
+    "cyclonedx-bom>=7.6.0",
     "twine>=7.0",
 ]
 # Separate from `tools` because semgrep alone brings ~100 packages.
 semgrep = [
-    "semgrep>=1.179",
+    "semgrep>=1.183.0",
 ]
 
 [build-system]
